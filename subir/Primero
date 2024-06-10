@@ -1,0 +1,37 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import time
+
+# Medir el tiempo de inicio
+start_time = time.time()
+
+# Parámetros del dataset
+n_samples = 1000
+n_features = 2
+n_classes = 2
+
+# Generar datos sintéticos
+X = np.random.randn(n_samples, n_features)
+y = np.random.choice(n_classes, n_samples)
+
+# Medir el tiempo de finalización
+end_time = time.time()
+generation_time = end_time - start_time
+
+# Visualización de los datos
+def plot_data(X, y):
+    plt.figure(figsize=(10, 6))
+    plt.scatter(X[y == 0][:, 0], X[y == 0][:, 1], label="Clase 0", alpha=0.6)
+    plt.scatter(X[y == 1][:, 0], X[y == 1][:, 1], label="Clase 1", alpha=0.6)
+    plt.title("Datos Sintéticos")
+    plt.xlabel("Característica 1")
+    plt.ylabel("Característica 2")
+    plt.legend()
+    plt.show()
+
+# Mostrar información del dataset
+print(f"Datos generados: {n_samples} muestras con {n_features} características cada una.")
+print(f"Tiempo de generación: {generation_time:.4f} segundos.")
+
+# Llamar a la función de visualización
+plot_data(X, y)
