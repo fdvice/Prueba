@@ -1,0 +1,123 @@
+# Importación de las librerías necesarias
+import pandas as pd
+import numpy as np
+import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sdv.single_table import GaussianCopulaSynthesizer, CTGANSynthesizer
+from sdv.metadata import SingleTableMetadata
+from sdv.evaluation.single_table import evaluate_quality
+
+# 1. Generación de un dataset de ejemplo
+# Crear un dataset de ejemplo con pandas
+data = pd.DataFrame({
+    'age': np.random.randint(18, 70, size=1000),
+    'salary': np.random.randint(30000, 100000, size=1000),
+    'gender': np.random.choice(['Male', 'Female'], size=1000),
+    'purchase': np.random.choice(['Yes', 'No'], size=1000)
+})
+
+# Mostrar las primeras filas del dataset original
+print("Dataset Original")
+print(data.head())
+
+# 2. Crear metadata para el dataset
+metadata = SingleTableMetadata()
+metadata.detect_from_dataframe(data)
+
+# Mostrar la metadata generada
+print("Metadata")
+print(metadata.to_dict())
+
+# 3. Entrenamiento del modelo generador de datos sintéticos
+# Inicializar el modelo CTGAN con la metadata
+model = CTGANSynthesizer(metadata)
+
+# Registrar el tiempo de inicio del entrenamiento
+start_time = time.time()
+
+# Entrenar el modelo con el dataset original
+model.fit(data)
+
+# Registrar el tiempo de finalización del entrenamiento
+end_time = time.time()
+
+# Calcular el tiempo total de entrenamiento
+training_time = end_time - start_time
+print(f"Tiempo de entrenamiento: {training_time:.2f} segundos")
+
+# 4. Generación de datos sintéticos
+# Registrar el tiempo de inicio de la generación de datos sintéticos
+start_time = time.time()
+
+# Generar datos sintéticos
+synthetic_data = model.sample(1000)
+
+# Registrar el tiempo de finalización de la generación de datos sintéticos
+end_time = time.time()
+
+# Calcular el tiempo total de generación
+generation_time = end_time - start_time
+print(f"Tiempo de generación de datos sintéticos: {generation_time:.2f} segundos")
+
+# Mostrar las primeras filas del dataset sintético
+print("Dataset Sintético")
+print(synthetic_data.head())
+
+# 5. Visualización de los datos originales y sintéticos
+# Configuración de los gráficos
+sns.set(style="whitegrid")
+
+# Visualizar la distribución de la edad
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+sns.histplot(data['age'], bins=20, kde=True, color='blue')
+plt.title('Distribución de Edad (Original)')
+
+plt.subplot(1, 2, 2)
+sns.histplot(synthetic_data['age'], bins=20, kde=True, color='green')
+plt.title('Distribución de Edad (Sintético)')
+plt.tight_layout()
+plt.show()
+
+# Visualizar la distribución de salarios
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+sns.histplot(data['salary'], bins=20, kde=True, color='blue')
+plt.title('Distribución de Salarios (Original)')
+
+plt.subplot(1, 2, 2)
+sns.histplot(synthetic_data['salary'], bins=20, kde=True, color='green')
+plt.title('Distribución de Salarios (Sintético)')
+plt.tight_layout()
+plt.show()
+
+# Visualizar la distribución de género
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+sns.countplot(x='gender', data=data, palette='pastel')
+plt.title('Distribución de Género (Original)')
+
+plt.subplot(1, 2, 2)
+sns.countplot(x='gender', data=synthetic_data, palette='pastel')
+plt.title('Distribución de Género (Sintético)')
+plt.tight_layout()
+plt.show()
+
+# Visualizar la distribución de compras
+plt.figure(figsize=(10, 5))
+plt.subplot(1, 2, 1)
+sns.countplot(x='purchase', data=data, palette='pastel')
+plt.title('Distribución de Compras (Original)')
+
+plt.subplot(1, 2, 2)
+sns.countplot(x='purchase', data=synthetic_data, palette='pastel')
+plt.title('Distribución de Compras (Sintético)')
+plt.tight_layout()
+plt.show()
+
+# 6. Validación de los datos sintéticos generados
+# Evaluar la calidad de los datos sintéticos
+evaluation_report = evaluate_quality(data, synthetic_data,metadata)
+print(f"Reporte de evaluación de la calidad de los datos sintéticos:")
+print(evaluation_report)

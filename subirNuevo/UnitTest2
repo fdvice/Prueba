@@ -1,0 +1,134 @@
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import StandardScaler
+import joblib
+
+# Preprocesamiento de Datos
+def imputar_nulos(df, strategy='mean'):
+    if strategy == 'mean':
+        return df.fillna(df.mean())
+    elif strategy == 'median':
+        return df.fillna(df.median())
+    else:
+        raise ValueError("Invalid strategy. Use 'mean' or 'median'.")
+
+def escalar_datos(X_train, X_test):
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    return X_train_scaled, X_test_scaled, scaler
+
+# Ingeniería de Características
+def crear_nueva_caracteristica(df):
+    df['feature_sum'] = df.sum(axis=1)
+    return df
+
+# Entrenamiento y Evaluación del Modelo
+def entrenar_modelo(X_train, y_train):
+    modelo = LinearRegression()
+    modelo.fit(X_train, y_train)
+    return modelo
+
+def evaluar_modelo(modelo, X_test, y_test):
+    y_pred = modelo.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    return mse
+
+# Persistencia del Modelo
+def guardar_modelo(modelo, scaler, path_modelo='modelo.pkl', path_scaler='scaler.pkl'):
+    joblib.dump(modelo, path_modelo)
+    joblib.dump(scaler, path_scaler)
+
+def cargar_modelo(path_modelo='modelo.pkl', path_scaler='scaler.pkl'):
+    modelo = joblib.load(path_modelo)
+    scaler = joblib.load(path_scaler)
+    return modelo, scaler
+
+# Pipeline Completo
+def pipeline(df, target_column):
+    df = imputar_nulos(df)
+    df = crear_nueva_caracteristica(df)
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train_scaled, X_test_scaled, scaler = escalar_datos(X_train, X_test)
+    modelo = entrenar_modelo(X_train_scaled, y_train)
+    mse = evaluar_modelo(modelo, X_test_scaled, y_test)
+    guardar_modelo(modelo, scaler)
+    return mse
+
+import unittest
+import pandas as pd
+import numpy as np
+
+class TestPipelineMachineLearning(unittest.TestCase):
+
+    def setUp(self):
+        # Crear un DataFrame de ejemplo
+        data = {
+            'feature1': [1, 2, 3, 4, 5, np.nan],
+            'feature2': [2, 3, 4, 5, 6, 7],
+            'target': [1.2, 2.4, 3.5, 4.8, 5.0, 6.1]
+        }
+        self.df = pd.DataFrame(data)
+        self.target_column = 'target'
+        # Imputar nulos para las pruebas
+        self.df_imputed = imputar_nulos(self.df)
+
+    def test_imputar_nulos(self):
+        df_imputed = imputar_nulos(self.df)
+        self.assertFalse(df_imputed.isnull().values.any())
+
+    def test_escalar_datos(self):
+        X = self.df_imputed.drop(columns=[self.target_column])
+        X_train, X_test, y_train, y_test = train_test_split(X, self.df_imputed[self.target_column], test_size=0.2, random_state=42)
+        X_train_scaled, X_test_scaled, scaler = escalar_datos(X_train, X_test)
+        self.assertEqual(X_train_scaled.shape, X_train.shape)
+        self.assertEqual(X_test_scaled.shape, X_test.shape)
+
+    def test_crear_nueva_caracteristica(self):
+        df_new = crear_nueva_caracteristica(self.df_imputed)
+        self.assertTrue('feature_sum' in df_new.columns)
+        # Calcular el valor esperado basado en los datos imputados
+        expected_sum = self.df_imputed.iloc[0].sum()
+        self.assertEqual(df_new['feature_sum'].iloc[0], expected_sum)
+
+    def test_entrenar_modelo(self):
+        X = self.df_imputed.drop(columns=[self.target_column])
+        y = self.df_imputed[self.target_column]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train_scaled, X_test_scaled, scaler = escalar_datos(X_train, X_test)
+        modelo = entrenar_modelo(X_train_scaled, y_train)
+        self.assertIsInstance(modelo, LinearRegression)
+
+    def test_evaluar_modelo(self):
+        X = self.df_imputed.drop(columns=[self.target_column])
+        y = self.df_imputed[self.target_column]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train_scaled, X_test_scaled, scaler = escalar_datos(X_train, X_test)
+        modelo = entrenar_modelo(X_train_scaled, y_train)
+        mse = evaluar_modelo(modelo, X_test_scaled, y_test)
+        self.assertGreaterEqual(mse, 0)
+        self.assertLessEqual(mse, 10)
+
+    def test_guardar_y_cargar_modelo(self):
+        X = self.df_imputed.drop(columns=[self.target_column])
+        y = self.df_imputed[self.target_column]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_train_scaled, X_test_scaled, scaler = escalar_datos(X_train, X_test)
+        modelo = entrenar_modelo(X_train_scaled, y_train)
+        guardar_modelo(modelo, scaler, path_modelo='test_modelo.pkl', path_scaler='test_scaler.pkl')
+        modelo_cargado, scaler_cargado = cargar_modelo(path_modelo='test_modelo.pkl', path_scaler='test_scaler.pkl')
+        self.assertIsInstance(modelo_cargado, LinearRegression)
+        self.assertIsInstance(scaler_cargado, StandardScaler)
+
+    def test_pipeline(self):
+        mse = pipeline(self.df, self.target_column)
+        self.assertGreaterEqual(mse, 0)
+        self.assertLessEqual(mse, 10)
+
+if __name__ == '__main__':
+    unittest.main()
