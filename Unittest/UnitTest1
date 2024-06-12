@@ -1,0 +1,64 @@
+from sklearn.linear_model import LinearRegression
+from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+def generar_datos(n_samples=100, n_features=1, noise=0.1):
+    X, y = make_regression(n_samples=n_samples, n_features=n_features, noise=noise)
+    return X, y
+
+def dividir_datos(X, y, test_size=0.2, random_state=42):
+    return train_test_split(X, y, test_size=test_size, random_state=random_state)
+
+def entrenar_modelo(X_train, y_train):
+    modelo = LinearRegression()
+    modelo.fit(X_train, y_train)
+    return modelo
+
+def evaluar_modelo(modelo, X_test, y_test):
+    y_pred = modelo.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    return mse
+
+import unittest
+
+class TestModeloMachineLearning(unittest.TestCase):
+
+    def setUp(self):
+        # Generamos los datos y los dividimos en conjuntos de entrenamiento y prueba
+        X, y = generar_datos(n_samples=100, n_features=1, noise=0.1)
+        self.X_train, self.X_test, self.y_train, self.y_test = dividir_datos(X, y)
+
+    def test_generar_datos(self):
+        # Verificamos que la función generar_datos crea las dimensiones correctas
+        X, y = generar_datos(n_samples=100, n_features=1, noise=0.1)
+        self.assertEqual(X.shape[0], 100)
+        self.assertEqual(X.shape[1], 1)
+        self.assertEqual(y.shape[0], 100)
+
+    def test_dividir_datos(self):
+        # Verificamos que los datos se dividen correctamente
+        # Ajustamos la aserción según el tamaño real esperado de los datos
+        X_train, X_test, y_train, y_test = dividir_datos(self.X_train, self.y_train)
+        expected_train_size = int(len(self.X_train) * (1 - 0.2))
+        expected_test_size = len(self.X_train) - expected_train_size
+        self.assertEqual(len(X_train), expected_train_size)
+        self.assertEqual(len(X_test), expected_test_size)
+        self.assertEqual(len(y_train), expected_train_size)
+        self.assertEqual(len(y_test), expected_test_size)
+
+    def test_entrenar_modelo(self):
+        # Verificamos que el modelo se entrena sin errores y es un objeto de tipo LinearRegression
+        modelo = entrenar_modelo(self.X_train, self.y_train)
+        self.assertIsInstance(modelo, LinearRegression)
+
+    def test_evaluar_modelo(self):
+        # Entrenamos el modelo y verificamos que el MSE es razonable
+        modelo = entrenar_modelo(self.X_train, self.y_train)
+        mse = evaluar_modelo(modelo, self.X_test, self.y_test)
+        self.assertGreaterEqual(mse, 0)
+        self.assertLessEqual(mse, 10)  # Asumiendo que el error debe ser menor que 10
+
+if __name__ == '__main__':
+    unittest.main()
