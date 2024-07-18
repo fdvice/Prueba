@@ -1,0 +1,61 @@
+import time
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+from pyspark.sql.types import IntegerType, FloatType, StringType
+import random
+
+# Iniciar una sesión de Spark
+spark = SparkSession.builder.appName("SyntheticDataGeneration").getOrCreate()
+
+# Leer el archivo CSV en un DataFrame de PySpark
+file_path = "path/to/your/csvfile.csv"
+df = spark.read.csv(file_path, header=True, inferSchema=True)
+
+# Mostrar una vista previa de los datos
+df.show(5)
+
+# Obtener las distribuciones de los datos originales
+def get_distribution(df, col_name):
+    return df.select(col_name).rdd.flatMap(lambda x: x).collect()
+
+# Generar datos sintéticos basados en la distribución de los datos originales
+def generate_synthetic_data(df, num_samples):
+    schema = df.schema
+    synthetic_data = []
+
+    for _ in range(num_samples):
+        row = []
+        for field in schema:
+            if isinstance(field.dataType, IntegerType):
+                values = get_distribution(df, field.name)
+                row.append(random.choice(values))
+            elif isinstance(field.dataType, FloatType):
+                values = get_distribution(df, field.name)
+                row.append(random.choice(values))
+            elif isinstance(field.dataType, StringType):
+                values = get_distribution(df, field.name)
+                row.append(random.choice(values))
+            else:
+                row.append(None)  # Manejar otros tipos de datos según sea necesario
+        synthetic_data.append(tuple(row))
+
+    synthetic_df = spark.createDataFrame(synthetic_data, schema=schema)
+    return synthetic_df
+
+# Medir el tiempo de generación de datos
+start_time = time.time()
+
+# Generar 1 millón de datos sintéticos
+synthetic_df = generate_synthetic_data(df, 1000000)
+
+end_time = time.time()
+
+# Mostrar el tiempo tomado para generar los datos
+print(f"Tiempo para generar los datos sintéticos: {end_time - start_time} segundos")
+
+# Guardar el nuevo DataFrame en un archivo Parquet
+output_path = "path/to/output/synthetic_data.parquet"
+synthetic_df.write.parquet(output_path)
+
+# Parar la sesión de Spark
+spark.stop()
